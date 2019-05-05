@@ -65,7 +65,7 @@ namespace TCPInterceptor
                         await outClient.ConnectAsync(_target, _port);
 
                         var stream1 = tcpClient.GetStream();
-                        var stream2 = tcpClient.GetStream();
+                        var stream2 = outClient.GetStream();
                         var dir1 = CopyStream(true, stream1, stream2, cancellationToken);
                         var dir2 = CopyStream(false, stream2, stream1, cancellationToken);
                         await Task.WhenAny(dir1, dir2);
