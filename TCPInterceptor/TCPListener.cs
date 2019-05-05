@@ -14,12 +14,15 @@ namespace TCPInterceptor
         private readonly int _port;
         private readonly IPAddress _target;
         private readonly Logger _logger;
+        private readonly int _id;
+        private static int _staticId = 0;
 
         public TCPListener(int port, IPAddress target, Logger logger)
         {
             _port = port == 0 ? throw new ArgumentOutOfRangeException(nameof(port)) : port;
             _target = target ?? throw new ArgumentOutOfRangeException(nameof(target));
             _logger = logger;
+            _id = Interlocked.Increment(ref _staticId);
         }
 
         public async void Start(CancellationToken cancellationToken)
@@ -91,7 +94,7 @@ namespace TCPInterceptor
                     await (sync.Wait(cancellationToken));
                     try
                     {
-                        await _logger.Log(_port, outbound, buffer, 0, bytesRead);
+                        await _logger.Log(_id, _port, outbound, buffer, 0, bytesRead);
                     }
                     finally
                     {

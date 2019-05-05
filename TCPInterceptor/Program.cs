@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TCPInterceptor
@@ -18,7 +19,13 @@ namespace TCPInterceptor
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Unhandled exception caught!");
                 Console.WriteLine(ex.ToString());
+                if (System.Diagnostics.Debug.Listeners.Count != 0)
+                {
+                    Console.WriteLine("Press enter to exit");
+                    Console.ReadLine();
+                }
             }
         }
 
@@ -28,16 +35,27 @@ namespace TCPInterceptor
         string logFolderName;
         System.Collections.Generic.Queue<int> queue;
 
-        void Start(string[] args)
+        public void Start(string[] args)
         {
             Console.WriteLine("TCPInterceptor");
             if (!GetParams()) return;
-            StartListeners();
-            Console.WriteLine("Press enter to exit");
-            Console.ReadLine();
+            Logger logger = new Logger(logFolderName, timeout);
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var token = cancellationTokenSource.Token;
+                foreach (int port in ports)
+                {
+                    var listener = new TCPListener(port, target, logger);
+                    listener.Start(token);
+                }
+                Console.WriteLine("Press enter to exit");
+                Console.ReadLine();
+                cancellationTokenSource.Cancel();
+                System.Threading.Thread.Sleep(200);
+            }
         }
 
-        bool GetParams()
+        private bool GetParams()
         {
             Console.Write("Enter input ports separated by commas: ");
             var str = Console.ReadLine();
@@ -57,7 +75,16 @@ namespace TCPInterceptor
             Console.Write("Log folder name: ");
             str = Console.ReadLine();
             if (str == "") return false;
+            str = (new System.IO.DirectoryInfo(str)).FullName;
             logFolderName = str;
+
+            Console.WriteLine("Writing log to: " + logFolderName);
+            Console.Write("Confirm log folder (y/n): ");
+            if (!Console.ReadLine().ToLower().StartsWith("y")) return false;
+            if (!System.IO.Directory.Exists(logFolderName))
+            {
+                System.IO.Directory.CreateDirectory(logFolderName);
+            }
 
             return true;
         }

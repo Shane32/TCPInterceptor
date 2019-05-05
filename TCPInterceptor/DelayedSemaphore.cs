@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TCPInterceptor
 {
-    class DelayedSemaphore
+    class DelayedSemaphore : IDisposable
     {
         private readonly SemaphoreSlim _semaphoreSlim;
         private bool _stillHeld = false;
@@ -18,7 +18,7 @@ namespace TCPInterceptor
         public DelayedSemaphore(SemaphoreSlim semaphoreSlim, int timerDelay)
         {
             _semaphoreSlim = semaphoreSlim;
-            _timer = new Timer(new TimerCallback(_timerCallback));
+            _timer = timerDelay == 0 ? null : new Timer(new TimerCallback(_timerCallback));
             _timerDelay = timerDelay;
         }
 
@@ -66,7 +66,7 @@ namespace TCPInterceptor
         {
             lock (_relaseSync)
             {
-                if (!_stillHeld)
+                if (!_stillHeld && _timerDelay > 0)
                 {
                     _stillHeld = true;
                     _timer.Change(_timerDelay, Timeout.Infinite);
@@ -76,6 +76,11 @@ namespace TCPInterceptor
                     _semaphoreSlim.Release();
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            _timer?.Dispose();
         }
     }
 }
