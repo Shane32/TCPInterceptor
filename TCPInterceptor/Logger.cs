@@ -42,8 +42,8 @@ namespace TCPInterceptor
                 lastOutbound = outbound;
                 lastTime = DateTime.Now;
             }
-            char outboundChar = outbound ? '+' : '-';
-            string filename = $"{_folderName}\\{id:00000}{outboundChar}{port:00000} {lastTime:HH.mm.ss.fffffff}.txt";
+            string outboundStr = outbound ? "out" : "in";
+            string filename = $"{_folderName}\\{lastTime:HH.mm.ss.fffffff} {id:00000} {port:00000} {outboundStr}.txt";
             using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.Read))
             {
                 await fileStream.WriteAsync(buffer, offset, count);
