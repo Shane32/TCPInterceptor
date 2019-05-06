@@ -30,12 +30,14 @@ namespace TCPInterceptor
         int lastPort = 0;
         bool lastOutbound = false;
         int logId = -1;
+        DateTime lastTime = DateTime.MinValue;
 
         public async Task Log(int id, int port, bool outbound, byte[] buffer, int offset, int count) {
             bool append = (lastId == id && lastPort == port && lastOutbound == outbound);
             int thisLogId = append ? logId : ++logId;
+            if (!append) lastTime = DateTime.Now;
             char outboundChar = outbound ? '+' : '-';
-            string filename = $"{_folderName}\\{id:00000}{outboundChar}{port:00000} {DateTime.Now:HH.mm.ss.fffffff}.txt";
+            string filename = $"{_folderName}\\{id:00000}{outboundChar}{port:00000} {lastTime:HH.mm.ss.fffffff}.txt";
             using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.ReadWrite, FileShare.Read))
             {
                 await fileStream.WriteAsync(buffer, offset, count);
