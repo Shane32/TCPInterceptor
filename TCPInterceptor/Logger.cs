@@ -44,7 +44,7 @@ namespace TCPInterceptor
             }
             char outboundChar = outbound ? '+' : '-';
             string filename = $"{_folderName}\\{id:00000}{outboundChar}{port:00000} {lastTime:HH.mm.ss.fffffff}.txt";
-            using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.ReadWrite, FileShare.Read))
+            using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.Read))
             {
                 await fileStream.WriteAsync(buffer, offset, count);
             }
