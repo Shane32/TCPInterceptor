@@ -33,7 +33,6 @@ namespace TCPInterceptor
         IPAddress target;
         int timeout;
         string logFolderName;
-        System.Collections.Generic.Queue<int> queue;
 
         public void Start(string[] args)
         {
