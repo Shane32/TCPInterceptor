@@ -30,55 +30,58 @@ namespace TCPInterceptor
             if (cancellationToken.IsCancellationRequested) return;
             System.Net.Sockets.TcpListener tcpListener = new System.Net.Sockets.TcpListener(IPAddress.Any, _port);
             tcpListener.Start();
-            cancellationToken.Register(() =>
+            using (cancellationToken.Register(() => tcpListener.Stop()))
             {
-                tcpListener.Stop();
-            });
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                TcpClient tcpClient = null;
-                try
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    tcpClient = await tcpListener.AcceptTcpClientAsync();
+                    TcpClient tcpClient = null;
+                    try
+                    {
+                        tcpClient = await tcpListener.AcceptTcpClientAsync();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        break;
+                    }
+                    StartClient(cancellationToken, tcpClient);
                 }
-                catch (ObjectDisposedException)
-                {
-                    break;
-                }
-                StartClient(cancellationToken, tcpClient);
             }
 
         }
 
         private async void StartClient(CancellationToken cancellationToken, TcpClient tcpClient)
         {
-            cancellationToken.Register(() => tcpClient.Dispose());
-            using (tcpClient)
+            using (cancellationToken.Register(() => tcpClient.Dispose()))
             {
-                try
+                using (tcpClient)
                 {
-                    tcpClient.LingerState = new LingerOption(true, 5);
-                    using (var outClient = new TcpClient())
+                    try
                     {
-                        cancellationToken.Register(() => outClient.Dispose());
-                        outClient.LingerState = new LingerOption(true, 5);
-                        await outClient.ConnectAsync(_target, _port);
+                        tcpClient.LingerState = new LingerOption(true, 5);
+                        using (var outClient = new TcpClient())
+                        {
+                            using (cancellationToken.Register(() => outClient.Dispose()))
+                            {
+                                outClient.LingerState = new LingerOption(true, 5);
+                                await outClient.ConnectAsync(_target, _port);
 
-                        var stream1 = tcpClient.GetStream();
-                        var stream2 = outClient.GetStream();
-                        var dir1 = CopyStream(true, stream1, stream2, cancellationToken);
-                        var dir2 = CopyStream(false, stream2, stream1, cancellationToken);
-                        await Task.WhenAny(dir1, dir2);
+                                var stream1 = tcpClient.GetStream();
+                                var stream2 = outClient.GetStream();
+                                var dir1 = CopyStream(true, stream1, stream2, cancellationToken);
+                                var dir2 = CopyStream(false, stream2, stream1, cancellationToken);
+                                await Task.WhenAny(dir1, dir2);
 
-                        outClient.Close();
+                                outClient.Close();
+                            }
+                        }
+                        tcpClient.Close();
                     }
-                    tcpClient.Close();
-                }
-                catch
-                {
+                    catch
+                    {
 
+                    }
                 }
-            }
+            };
         }
 
         private async Task CopyStream(bool outbound, NetworkStream inStream, NetworkStream outStream, CancellationToken cancellationToken)
